@@ -1,6 +1,7 @@
 import { useStore } from '@nanostores/react';
 import { ClientOnly } from 'remix-utils/client-only';
 import { chatStore } from '~/lib/stores/chat';
+import { menuStore } from '~/lib/stores/menu';
 import { classNames } from '~/utils/classNames';
 import { HeaderActionButtons } from './HeaderActionButtons.client';
 import { ChatDescription } from '~/lib/persistence/ChatDescription.client';
@@ -18,8 +19,14 @@ export function Header() {
         },
       )}
     >
-      <div className="flex items-center gap-2 z-logo text-bolt-elements-textPrimary cursor-pointer">
-        <div className="i-ph:sidebar-simple-duotone text-xl" />
+      <div className="flex items-center gap-2 z-logo text-bolt-elements-textPrimary">
+        <button
+          onClick={() => menuStore.isOpen.set(true)}
+          className="flex items-center justify-center w-8 h-8 rounded-md hover:bg-bolt-elements-sidebar-buttonBackgroundHover transition-theme cursor-pointer"
+          aria-label="Open menu"
+        >
+          <div className="i-ph:sidebar-simple-duotone text-xl" />
+        </button>
         <a href="/" className="text-2xl font-semibold text-bolt-elements-textPrimary flex items-center">
           bolt-Stack
         </a>

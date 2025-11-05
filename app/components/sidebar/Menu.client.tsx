@@ -9,6 +9,8 @@ import { logger } from '~/utils/logger';
 import { HistoryItem } from './HistoryItem';
 import { binDates } from './date-binning';
 import { useSearchFilter } from '~/lib/hooks/useSearchFilter';
+import { useStore } from '@nanostores/react';
+import { menuStore } from '~/lib/stores/menu';
 
 const menuVariants = {
   closed: {
@@ -37,7 +39,7 @@ export function Menu() {
   const { duplicateCurrentChat, exportChat } = useChatHistory();
   const menuRef = useRef<HTMLDivElement>(null);
   const [list, setList] = useState<ChatHistoryItem[]>([]);
-  const [open, setOpen] = useState(false);
+  const open = useStore(menuStore.isOpen);
   const [dialogContent, setDialogContent] = useState<DialogContent>(null);
 
   const { filteredItems: filteredList, handleSearchChange } = useSearchFilter({
@@ -84,45 +86,31 @@ export function Menu() {
     }
   }, [open]);
 
-  useEffect(() => {
-    const enterThreshold = 40;
-    const exitThreshold = 40;
-    let lastClickTime = 0;
-    const clickCooldown = 500; // 500ms cooldown after any click
+  // Auto-open feature disabled - sidebar only opens via manual button click
+  // useEffect(() => {
+  //   const enterThreshold = 40;
+  //   const exitThreshold = 40;
 
-    function onClick() {
-      lastClickTime = Date.now();
-    }
+  //   function onMouseMove(event: MouseEvent) {
+  //     if (event.buttons !== 0) {
+  //       return;
+  //     }
 
-    function onMouseMove(event: MouseEvent) {
-      // Don't auto-open if clicking or interacting with elements
-      if (event.buttons !== 0) {
-        return;
-      }
+  //     if (event.pageX < enterThreshold) {
+  //       setOpen(true);
+  //     }
 
-      // Don't auto-open shortly after a click (prevents triggering during tab switches)
-      const timeSinceClick = Date.now() - lastClickTime;
-      if (timeSinceClick < clickCooldown) {
-        return;
-      }
+  //     if (menuRef.current && event.clientX > menuRef.current.getBoundingClientRect().right + exitThreshold) {
+  //       setOpen(false);
+  //     }
+  //   }
 
-      if (event.pageX < enterThreshold) {
-        setOpen(true);
-      }
+  //   window.addEventListener('mousemove', onMouseMove);
 
-      if (menuRef.current && event.clientX > menuRef.current.getBoundingClientRect().right + exitThreshold) {
-        setOpen(false);
-      }
-    }
-
-    window.addEventListener('click', onClick);
-    window.addEventListener('mousemove', onMouseMove);
-
-    return () => {
-      window.removeEventListener('click', onClick);
-      window.removeEventListener('mousemove', onMouseMove);
-    };
-  }, []);
+  //   return () => {
+  //     window.removeEventListener('mousemove', onMouseMove);
+  //   };
+  // }, []);
 
   const handleDeleteClick = (event: React.UIEvent, item: ChatHistoryItem) => {
     event.preventDefault();
@@ -144,7 +132,7 @@ export function Menu() {
     >
       <div className="flex items-center justify-end h-[var(--header-height)] px-4">
         <button
-          onClick={() => setOpen(false)}
+          onClick={() => menuStore.isOpen.set(false)}
           className="flex items-center justify-center w-8 h-8 rounded-md bg-transparent hover:bg-bolt-elements-sidebar-buttonBackgroundHover text-bolt-elements-textPrimary transition-theme"
           aria-label="Close menu"
         >
