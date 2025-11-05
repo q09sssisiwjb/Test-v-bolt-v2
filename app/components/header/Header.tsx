@@ -20,13 +20,12 @@ export function Header() {
       )}
     >
       <div className="flex items-center gap-2 z-logo text-bolt-elements-textPrimary">
-        <button
+        <div 
           onClick={() => menuStore.isOpen.set(true)}
-          className="flex items-center justify-center w-8 h-8 rounded-md hover:bg-bolt-elements-sidebar-buttonBackgroundHover transition-theme cursor-pointer"
+          className="i-ph:sidebar-simple-duotone text-xl cursor-pointer hover:opacity-80 transition-opacity"
+          role="button"
           aria-label="Open menu"
-        >
-          <div className="i-ph:sidebar-simple-duotone text-xl" />
-        </button>
+        />
         <a href="/" className="text-2xl font-semibold text-bolt-elements-textPrimary flex items-center">
           bolt-Stack
         </a>
