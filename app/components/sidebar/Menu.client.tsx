@@ -87,10 +87,22 @@ export function Menu() {
   useEffect(() => {
     const enterThreshold = 40;
     const exitThreshold = 40;
+    let lastClickTime = 0;
+    const clickCooldown = 500; // 500ms cooldown after any click
+
+    function onClick() {
+      lastClickTime = Date.now();
+    }
 
     function onMouseMove(event: MouseEvent) {
       // Don't auto-open if clicking or interacting with elements
       if (event.buttons !== 0) {
+        return;
+      }
+
+      // Don't auto-open shortly after a click (prevents triggering during tab switches)
+      const timeSinceClick = Date.now() - lastClickTime;
+      if (timeSinceClick < clickCooldown) {
         return;
       }
 
@@ -103,9 +115,11 @@ export function Menu() {
       }
     }
 
+    window.addEventListener('click', onClick);
     window.addEventListener('mousemove', onMouseMove);
 
     return () => {
+      window.removeEventListener('click', onClick);
       window.removeEventListener('mousemove', onMouseMove);
     };
   }, []);
