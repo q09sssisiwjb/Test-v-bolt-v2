@@ -102,7 +102,7 @@ export const ChatImpl = memo(
       return PROVIDER_LIST.find((p) => p.name === savedProvider) || DEFAULT_PROVIDER;
     });
 
-    const { showChat } = useStore(chatStore);
+    const { showChat, pendingInput } = useStore(chatStore);
 
     const [animationScope, animate] = useAnimate();
 
@@ -143,6 +143,17 @@ export const ChatImpl = memo(
         storeMessageHistory(messages).catch((error) => toast.error(error.message));
       }
     }, [messages, isLoading, parseMessages]);
+
+    useEffect(() => {
+      if (pendingInput && pendingInput.trim() !== '') {
+        setInput(pendingInput);
+        chatStore.setKey('pendingInput', '');
+        
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+        }
+      }
+    }, [pendingInput, setInput]);
 
     const scrollTextArea = () => {
       const textarea = textareaRef.current;
