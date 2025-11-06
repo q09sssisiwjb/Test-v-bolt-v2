@@ -1,5 +1,5 @@
 import { IconButton } from '~/components/ui/IconButton';
-import { openMarketing } from '~/lib/stores/marketing';
+import { setPendingInput } from '~/lib/stores/chat';
 import WithTooltip from '~/components/ui/Tooltip';
 
 interface MarketingButtonProps {
@@ -7,11 +7,15 @@ interface MarketingButtonProps {
 }
 
 export function MarketingButton({ disabled = false }: MarketingButtonProps) {
+  const handleClick = () => {
+    setPendingInput('Please analyze my app/website and provide a comprehensive marketing strategy.');
+  };
+
   return (
     <WithTooltip tooltip="Get AI Marketing Strategies">
       <IconButton
         disabled={disabled}
-        onClick={() => openMarketing()}
+        onClick={handleClick}
         title="Marketing"
         className="transition-all"
       >
