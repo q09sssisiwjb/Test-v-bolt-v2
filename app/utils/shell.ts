@@ -3,6 +3,23 @@ import type { ITerminal } from '~/types/terminal';
 import { withResolvers } from './promises';
 import { atom } from 'nanostores';
 
+const COMMAND_TIMEOUT_MS = 5 * 60 * 1000;
+const STREAM_READ_TIMEOUT_MS = 30 * 1000;
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, errorMessage: string): Promise<T> {
+  let timeoutId: NodeJS.Timeout;
+  
+  const timeoutPromise = new Promise<T>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error(errorMessage));
+    }, timeoutMs);
+  });
+
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    clearTimeout(timeoutId);
+  });
+}
+
 export async function newShellProcess(webcontainer: WebContainer, terminal: ITerminal) {
   const args: string[] = [];
 
@@ -100,27 +117,39 @@ export class BoltShell {
 
     const state = this.executionState.get();
 
-    /*
-     * interrupt the current execution
-     *  this.#shellInputStream?.write('\x03');
-     */
     this.terminal.input('\x03');
 
     if (state && state.executionPrms) {
-      await state.executionPrms;
+      try {
+        await withTimeout(
+          state.executionPrms,
+          COMMAND_TIMEOUT_MS,
+          'Previous command execution timed out'
+        );
+      } catch (error) {
+        console.warn('Previous command timed out, continuing with new command', error);
+      }
     }
 
-    //start a new execution
     this.terminal.input(command.trim() + '\n');
 
-    //wait for the execution to finish
-    const executionPromise = this.getCurrentExecutionResult();
+    const executionPromise = withTimeout(
+      this.getCurrentExecutionResult(),
+      COMMAND_TIMEOUT_MS,
+      `Command execution timed out after ${COMMAND_TIMEOUT_MS / 1000}s: ${command}`
+    );
+    
     this.executionState.set({ sessionId, active: true, executionPrms: executionPromise });
 
-    const resp = await executionPromise;
-    this.executionState.set({ sessionId, active: false });
-
-    return resp;
+    try {
+      const resp = await executionPromise;
+      this.executionState.set({ sessionId, active: false });
+      return resp;
+    } catch (error) {
+      this.executionState.set({ sessionId, active: false });
+      console.error('Command execution failed:', error);
+      throw error;
+    }
   }
 
   async newBoltShellProcess(webcontainer: WebContainer, terminal: ITerminal) {
@@ -188,26 +217,47 @@ export class BoltShell {
     }
 
     const tappedStream = this.#outputStream;
+    let lastReadTime = Date.now();
 
     while (true) {
-      const { value, done } = await tappedStream.read();
+      try {
+        const readPromise = tappedStream.read();
+        const { value, done } = await withTimeout(
+          readPromise,
+          STREAM_READ_TIMEOUT_MS,
+          'Stream read timeout - browser may have throttled background tab'
+        );
 
-      if (done) {
-        break;
-      }
+        lastReadTime = Date.now();
 
-      const text = value || '';
-      fullOutput += text;
+        if (done) {
+          break;
+        }
 
-      // Check if command completion signal with exit code
-      const [, osc, , , code] = text.match(/\x1b\]654;([^\x07=]+)=?((-?\d+):(\d+))?\x07/) || [];
+        const text = value || '';
+        fullOutput += text;
 
-      if (osc === 'exit') {
-        exitCode = parseInt(code, 10);
-      }
+        const [, osc, , , code] = text.match(/\x1b\]654;([^\x07=]+)=?((-?\d+):(\d+))?\x07/) || [];
 
-      if (osc === waitCode) {
-        break;
+        if (osc === 'exit') {
+          exitCode = parseInt(code, 10);
+        }
+
+        if (osc === waitCode) {
+          break;
+        }
+      } catch (error) {
+        if (document.hidden) {
+          console.warn('Tab is in background, stream read may be throttled. Consider keeping tab active during command execution.');
+        }
+        
+        const timeSinceLastRead = Date.now() - lastReadTime;
+        if (timeSinceLastRead > STREAM_READ_TIMEOUT_MS) {
+          console.error('Stream read timed out, command may have hung');
+          throw error;
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
     }
 
