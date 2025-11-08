@@ -7,6 +7,7 @@ import { stripIndents } from './utils/stripIndent';
 import { createHead } from 'remix-island';
 import { useEffect } from 'react';
 import { setupVisibilityMonitor } from './utils/visibilityMonitor';
+import * as Tooltip from '@radix-ui/react-tooltip';
 
 import reactToastifyStyles from 'react-toastify/dist/ReactToastify.css?url';
 import globalStyles from './styles/index.scss?url';
@@ -75,11 +76,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <>
+    <Tooltip.Provider>
       {children}
       <ScrollRestoration />
       <Scripts />
-    </>
+    </Tooltip.Provider>
   );
 }
 
