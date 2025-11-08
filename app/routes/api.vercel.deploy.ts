@@ -83,6 +83,7 @@ export async function action({ request }: ActionFunctionArgs) {
           type: 'github',
           repo: fullRepoName,
           ref: 'main',
+          repoId: githubRepoId,
         },
       }),
     });
