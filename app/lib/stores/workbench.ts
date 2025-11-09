@@ -463,7 +463,6 @@ export class WorkbenchStore {
       }
 
       const data = await response.json() as any;
-      alert(`Successfully deployed to Vercel! Visit: ${data.deploymentUrl}`);
       
       return data;
     } catch (error) {

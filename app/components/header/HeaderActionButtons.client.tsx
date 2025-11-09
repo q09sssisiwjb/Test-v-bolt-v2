@@ -8,6 +8,7 @@ import { classNames } from '~/utils/classNames';
 import { DeploymentSettingsButton } from './DeploymentSettings.client';
 import WithTooltip from '~/components/ui/Tooltip';
 import { toast } from 'react-toastify';
+import { VercelDeploymentDialog } from '~/components/deployment/VercelDeploymentDialog';
 
 interface HeaderActionButtonsProps {}
 
@@ -16,6 +17,8 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
   const { showChat } = useStore(chatStore);
   const settings = useStore(settingsStore);
   const [isDeploying, setIsDeploying] = useState(false);
+  const [showDeploymentDialog, setShowDeploymentDialog] = useState(false);
+  const [deploymentData, setDeploymentData] = useState<{ deploymentUrl: string; projectName: string; username: string } | null>(null);
 
   const isSmallViewport = useViewport(1024);
   const canHideChat = showWorkbench || !showChat;
@@ -55,13 +58,22 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
     
     setIsDeploying(true);
     try {
-      await workbenchStore.deployToVercel(
+      const result = await workbenchStore.deployToVercel(
         settings.deployment.github.username,
         settings.deployment.github.repoName,
         settings.deployment.vercel.token,
         settings.deployment.github.repoId
       );
-      toast.success('Successfully deployed to Vercel!');
+      
+      if (result && result.deploymentUrl) {
+        setDeploymentData({
+          deploymentUrl: result.deploymentUrl,
+          projectName: settings.deployment.github.repoName,
+          username: settings.deployment.github.username,
+        });
+        setShowDeploymentDialog(true);
+        toast.success('Successfully deployed to Vercel!');
+      }
     } catch (error) {
       toast.error('Failed to deploy to Vercel: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
@@ -70,8 +82,19 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
   };
 
   return (
-    <div className="flex gap-2">
-      {hasGithubCreds && (
+    <>
+      {deploymentData && (
+        <VercelDeploymentDialog
+          open={showDeploymentDialog}
+          onClose={() => setShowDeploymentDialog(false)}
+          deploymentUrl={deploymentData.deploymentUrl}
+          projectName={deploymentData.projectName}
+          username={deploymentData.username}
+        />
+      )}
+      
+      <div className="flex gap-2">
+        {hasGithubCreds && (
         <WithTooltip tooltip="Push to GitHub">
           <button
             onClick={handlePushToGitHub}
@@ -125,7 +148,8 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
           <div className="i-ph:code-bold" />
         </Button>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
 
