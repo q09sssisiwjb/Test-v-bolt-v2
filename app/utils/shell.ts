@@ -3,8 +3,8 @@ import type { ITerminal } from '~/types/terminal';
 import { withResolvers } from './promises';
 import { atom } from 'nanostores';
 
-const COMMAND_TIMEOUT_MS = 5 * 60 * 1000;
-const STREAM_READ_TIMEOUT_MS = 30 * 1000;
+const COMMAND_TIMEOUT_MS = 10 * 60 * 1000;
+const STREAM_READ_TIMEOUT_MS = 2 * 60 * 1000;
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number, errorMessage: string): Promise<T> {
   let timeoutId: NodeJS.Timeout;
